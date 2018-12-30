@@ -1,8 +1,9 @@
-module Grid exposing (ChosenColumn, Grid, addCoin, init, view)
+module Grid exposing (ChosenColumn, Grid, addCoin, init, view, winner)
 
 import Element exposing (Element)
 import Element.Border as Border
 import Element.Events as Events
+import List.Extra as List
 import Player exposing (Player(..))
 
 
@@ -66,6 +67,58 @@ addCoinToColumn player column =
 
         Three _ ->
             Nothing
+
+
+
+-- RESOLUTION
+
+
+winner : Grid -> Maybe Player
+winner grid_ =
+    let
+        ( ( a, b, c ), ( d, e, f ), ( g, h, i ) ) =
+            createGrid grid_
+
+        combinations : List ( Maybe Player, Maybe Player, Maybe Player )
+        combinations =
+            [ ( a, b, c )
+            , ( d, e, f )
+            , ( g, h, i )
+            , ( a, d, g )
+            , ( b, e, h )
+            , ( c, f, i )
+            , ( a, e, i )
+            , ( c, e, g )
+            ]
+    in
+    combinations
+        |> List.find (\( p1, p2, p3 ) -> p1 /= Nothing && p1 == p2 && p2 == p3)
+        |> Maybe.andThen (\( p1, p2, p3 ) -> p1)
+
+
+type alias PlayerColumn =
+    ( Maybe Player, Maybe Player, Maybe Player )
+
+
+createGrid : Grid -> ( PlayerColumn, PlayerColumn, PlayerColumn )
+createGrid (Grid ( c1, c2, c3 )) =
+    ( createRow c1, createRow c2, createRow c3 )
+
+
+createRow : Column -> PlayerColumn
+createRow column =
+    case column of
+        Empty ->
+            ( Nothing, Nothing, Nothing )
+
+        One player ->
+            ( Just player, Nothing, Nothing )
+
+        Two ( player, player2 ) ->
+            ( Just player, Just player2, Nothing )
+
+        Three ( player, player2, player3 ) ->
+            ( Just player, Just player2, Just player3 )
 
 
 

@@ -4,7 +4,7 @@ import Browser
 import Element
 import Grid exposing (Grid)
 import Html exposing (Html)
-import Player exposing (Player)
+import Player exposing (Player(..))
 
 
 
@@ -67,4 +67,15 @@ update msg model =
 view : Model -> Html Msg
 view model =
     Element.layout [] <|
-        Grid.view AddCoin model.grid
+        Element.column []
+            [ Grid.view AddCoin model.grid
+            , case Grid.winner model.grid of
+                Just Player.X ->
+                    Element.text "X has won"
+
+                Just Player.O ->
+                    Element.text "O has won"
+
+                Nothing ->
+                    Element.none
+            ]
