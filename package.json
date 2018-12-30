@@ -1,0 +1,26 @@
+{
+  "name": "connect3",
+  "version": "1.0.0",
+  "description": "Connect 3 game",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run elm-lint && npm run elm-test",
+    "elm-lint": "npm run elm-lint-fix -- --validate",
+    "elm-lint-fix": "elm-format src/",
+    "elm-test": "elm-test",
+    "watch": "elm-live --port 8000 --start-page dist/index.html -- src/Main.elm --output dist/index.html"
+  },
+  "keywords": [
+    "elm"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "elm": "^0.19.0-bugfix2"
+  },
+  "devDependencies": {
+    "elm-analyse": "^0.16.0",
+    "elm-live": "^3.4.0",
+    "elm-test": "^0.19.0-rev3"
+  }
+}
