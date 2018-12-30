@@ -12,7 +12,10 @@ import Player exposing (Player(..))
 
 
 type Grid
-    = Grid ( Column, Column, Column )
+    = Grid
+        { columns : ( Column, Column, Column )
+        , sides : ( Side, Side, Side )
+        }
 
 
 type Column
@@ -22,9 +25,18 @@ type Column
     | Three ( Player, Player, Player )
 
 
+type Side
+    = Left
+    | Center
+    | Right
+
+
 init : Grid
 init =
-    Grid ( Empty, Empty, Empty )
+    Grid
+        { columns = ( Empty, Empty, Empty )
+        , sides = ( Center, Center, Center )
+        }
 
 
 
@@ -38,19 +50,23 @@ type ChosenColumn
 
 
 addCoin : ChosenColumn -> Grid -> Player -> Maybe Grid
-addCoin chosenColumn (Grid ( column1, column2, column3 )) player =
+addCoin chosenColumn (Grid grid) player =
+    let
+        ( column1, column2, column3 ) =
+            grid.columns
+    in
     case chosenColumn of
         First ->
             addCoinToColumn player column1
-                |> Maybe.map (\newColumn -> Grid ( newColumn, column2, column3 ))
+                |> Maybe.map (\newColumn -> Grid { grid | columns = ( newColumn, column2, column3 ) })
 
         Second ->
             addCoinToColumn player column2
-                |> Maybe.map (\newColumn -> Grid ( column1, newColumn, column3 ))
+                |> Maybe.map (\newColumn -> Grid { grid | columns = ( column1, newColumn, column3 ) })
 
         Third ->
             addCoinToColumn player column3
-                |> Maybe.map (\newColumn -> Grid ( column1, column2, newColumn ))
+                |> Maybe.map (\newColumn -> Grid { grid | columns = ( column1, column2, newColumn ) })
 
 
 addCoinToColumn : Player -> Column -> Maybe Column
@@ -101,7 +117,11 @@ type alias PlayerColumn =
 
 
 createGrid : Grid -> ( PlayerColumn, PlayerColumn, PlayerColumn )
-createGrid (Grid ( c1, c2, c3 )) =
+createGrid (Grid { columns }) =
+    let
+        ( c1, c2, c3 ) =
+            columns
+    in
     ( createRow c1, createRow c2, createRow c3 )
 
 
@@ -126,8 +146,11 @@ createRow column =
 
 
 view : (ChosenColumn -> msg) -> Grid -> Element msg
-view onClick (Grid ( c1, c2, c3 )) =
+view onClick (Grid grid) =
     let
+        ( c1, c2, c3 ) =
+            grid.columns
+
         columns : List ( ChosenColumn, Column )
         columns =
             [ ( First, c1 ), ( Second, c2 ), ( Third, c3 ) ]
