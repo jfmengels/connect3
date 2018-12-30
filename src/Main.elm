@@ -1,10 +1,9 @@
 module Main exposing (main)
 
 import Browser
+import Element
 import Grid exposing (Grid)
-import Html exposing (Html, div, text)
-import Html.Attributes as Attr
-import Html.Events as Events
+import Html exposing (Html)
 import Player exposing (Player)
 
 
@@ -67,4 +66,5 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    Grid.view AddCoin model.grid
+    Element.layout [] <|
+        Grid.view AddCoin model.grid

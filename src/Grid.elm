@@ -1,8 +1,8 @@
 module Grid exposing (ChosenColumn, Grid, addCoin, init, view)
 
-import Html exposing (Html, div, text)
-import Html.Attributes as Attr
-import Html.Events as Events
+import Element exposing (Element)
+import Element.Border as Border
+import Element.Events as Events
 import Player exposing (Player(..))
 
 
@@ -72,35 +72,49 @@ addCoinToColumn player column =
 -- VIEW
 
 
-view : (ChosenColumn -> msg) -> Grid -> Html msg
+view : (ChosenColumn -> msg) -> Grid -> Element msg
 view onClick (Grid ( c1, c2, c3 )) =
     let
         columns : List ( ChosenColumn, Column )
         columns =
             [ ( First, c1 ), ( Second, c2 ), ( Third, c3 ) ]
     in
-    div [] (List.map (viewColumn onClick) columns)
+    Element.row
+        [ Element.padding 40 ]
+        (List.map (viewColumn onClick) columns)
 
 
-viewColumn : (ChosenColumn -> msg) -> ( ChosenColumn, Column ) -> Html msg
+viewColumn : (ChosenColumn -> msg) -> ( ChosenColumn, Column ) -> Element msg
 viewColumn onClick ( chosenColumn, column ) =
     let
-        hasOnClick : Bool
-        hasOnClick =
+        isFilled : Bool
+        isFilled =
             case column of
                 Empty ->
-                    True
-
-                One _ ->
-                    True
-
-                Two _ ->
-                    True
-
-                Three _ ->
                     False
 
-        children : List (Html msg)
+                One _ ->
+                    False
+
+                Two _ ->
+                    False
+
+                Three _ ->
+                    True
+
+        onClickAttributes : List (Element.Attribute msg)
+        onClickAttributes =
+            if not isFilled then
+                [ Events.onClick <| onClick chosenColumn
+                , Element.mouseOver
+                    [ Border.color <| Element.rgb 1 0 0
+                    ]
+                ]
+
+            else
+                []
+
+        children : List (Element msg)
         children =
             case column of
                 Empty ->
@@ -115,28 +129,30 @@ viewColumn onClick ( chosenColumn, column ) =
                 Three ( player, player2, player3 ) ->
                     [ viewCoin player, viewCoin player2, viewCoin player3 ]
     in
-    div
-        [ Attr.style "display" "flex"
-        , Attr.style "flex-direction" "column"
-        , if hasOnClick then
-            Events.onClick (onClick chosenColumn)
+    Element.column
+        ([ Element.width (Element.px 20)
+         , Element.spacingXY -1 5
+         , Element.pointer
+         , Border.solid
+         , Border.width 1
+         ]
+            ++ onClickAttributes
+        )
+        (List.reverse children)
 
-          else
-            Attr.class ""
-        ]
-        children
 
-
-viewEmpty : Html msg
+viewEmpty : Element msg
 viewEmpty =
-    text "-"
+    Element.el [ Element.centerX ] <|
+        Element.text "-"
 
 
-viewCoin : Player -> Html msg
+viewCoin : Player -> Element msg
 viewCoin player =
-    case player of
-        X ->
-            text "X"
+    Element.el [ Element.centerX ] <|
+        case player of
+            X ->
+                Element.text "X"
 
-        O ->
-            text "O"
+            O ->
+                Element.text "O"
