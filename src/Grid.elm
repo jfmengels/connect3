@@ -1,4 +1,13 @@
-module Grid exposing (ChosenColumn, Grid, addCoin, init, view, winner)
+module Grid exposing
+    ( Direction
+    , Grid
+    , Position
+    , addCoin
+    , init
+    , moveSide
+    , view
+    , winner
+    )
 
 import Element exposing (Element)
 import Element.Border as Border
@@ -43,13 +52,18 @@ init =
 -- UPDATE
 
 
-type ChosenColumn
+type Position
     = First
     | Second
     | Third
 
 
-addCoin : ChosenColumn -> Grid -> Player -> Maybe Grid
+type Direction
+    = GoLeft
+    | GoRight
+
+
+addCoin : Position -> Grid -> Player -> Maybe Grid
 addCoin chosenColumn (Grid grid) player =
     let
         ( column1, column2, column3 ) =
@@ -85,15 +99,79 @@ addCoinToColumn player column =
             Nothing
 
 
+moveSide : ( Position, Direction ) -> Grid -> Maybe Grid
+moveSide ( position, direction ) (Grid { columns, sides }) =
+    let
+        ( s1, s2, s3 ) =
+            sides
+    in
+    case position of
+        First ->
+            moveSideTo direction s1
+                |> Maybe.map
+                    (\newSide ->
+                        Grid
+                            { columns = columns
+                            , sides = ( newSide, s2, s3 )
+                            }
+                    )
+
+        Second ->
+            moveSideTo direction s2
+                |> Maybe.map
+                    (\newSide ->
+                        Grid
+                            { columns = columns
+                            , sides = ( s1, newSide, s3 )
+                            }
+                    )
+
+        Third ->
+            moveSideTo direction s3
+                |> Maybe.map
+                    (\newSide ->
+                        Grid
+                            { columns = columns
+                            , sides = ( s1, s2, newSide )
+                            }
+                    )
+
+
+moveSideTo : Direction -> Side -> Maybe Side
+moveSideTo direction side =
+    case direction of
+        GoLeft ->
+            case side of
+                Left ->
+                    Nothing
+
+                Center ->
+                    Just Left
+
+                Right ->
+                    Just Center
+
+        GoRight ->
+            case side of
+                Left ->
+                    Just Center
+
+                Center ->
+                    Just Right
+
+                Right ->
+                    Nothing
+
+
 
 -- RESOLUTION
 
 
 winner : Grid -> Maybe Player
-winner grid_ =
+winner (Grid { columns }) =
     let
         ( ( a, b, c ), ( d, e, f ), ( g, h, i ) ) =
-            createGrid grid_
+            createGrid columns
 
         combinations : List ( Maybe Player, Maybe Player, Maybe Player )
         combinations =
@@ -116,12 +194,8 @@ type alias PlayerColumn =
     ( Maybe Player, Maybe Player, Maybe Player )
 
 
-createGrid : Grid -> ( PlayerColumn, PlayerColumn, PlayerColumn )
-createGrid (Grid { columns }) =
-    let
-        ( c1, c2, c3 ) =
-            columns
-    in
+createGrid : ( Column, Column, Column ) -> ( PlayerColumn, PlayerColumn, PlayerColumn )
+createGrid ( c1, c2, c3 ) =
     ( createRow c1, createRow c2, createRow c3 )
 
 
@@ -145,22 +219,29 @@ createRow column =
 -- VIEW
 
 
-view : (ChosenColumn -> msg) -> Grid -> Element msg
-view onClick (Grid grid) =
+view : { onColumnClick : Position -> msg, onSideClick : ( Position, Direction ) -> msg } -> Grid -> Element msg
+view { onColumnClick, onSideClick } (Grid grid) =
     let
         ( c1, c2, c3 ) =
             grid.columns
 
-        columns : List ( ChosenColumn, Column )
+        columns : List ( Position, Column )
         columns =
             [ ( First, c1 ), ( Second, c2 ), ( Third, c3 ) ]
     in
     Element.row
         [ Element.padding 40 ]
-        (List.map (viewColumn onClick) columns)
+        ([ viewOuterLeftSide onSideClick grid.sides
+         , viewInnerLeftSide onSideClick grid.sides
+         ]
+            ++ List.map (viewColumn onColumnClick) columns
+            ++ [ viewInnerRightSide onSideClick grid.sides
+               , viewOuterRightSide onSideClick grid.sides
+               ]
+        )
 
 
-viewColumn : (ChosenColumn -> msg) -> ( ChosenColumn, Column ) -> Element msg
+viewColumn : (Position -> msg) -> ( Position, Column ) -> Element msg
 viewColumn onClick ( chosenColumn, column ) =
     let
         isFilled : Bool
@@ -232,3 +313,88 @@ viewCoin player =
 
             O ->
                 Element.text "O"
+
+
+viewOuterLeftSide : (( Position, Direction ) -> msg) -> ( Side, Side, Side ) -> Element msg
+viewOuterLeftSide onSideClick sides =
+    sides
+        |> sidesWithPositions
+        |> List.map
+            (\( side, position ) ->
+                if side == Left then
+                    viewLeftSide onSideClick position
+
+                else
+                    viewEmptySide
+            )
+        |> Element.column []
+
+
+viewInnerLeftSide : (( Position, Direction ) -> msg) -> ( Side, Side, Side ) -> Element msg
+viewInnerLeftSide onSideClick sides =
+    sides
+        |> sidesWithPositions
+        |> List.map
+            (\( side, position ) ->
+                if side /= Right then
+                    viewLeftSide onSideClick position
+
+                else
+                    viewEmptySide
+            )
+        |> Element.column []
+
+
+viewOuterRightSide : (( Position, Direction ) -> msg) -> ( Side, Side, Side ) -> Element msg
+viewOuterRightSide onSideClick sides =
+    sides
+        |> sidesWithPositions
+        |> List.map
+            (\( side, position ) ->
+                if side == Right then
+                    viewRightSide onSideClick position
+
+                else
+                    viewEmptySide
+            )
+        |> Element.column []
+
+
+viewInnerRightSide : (( Position, Direction ) -> msg) -> ( Side, Side, Side ) -> Element msg
+viewInnerRightSide onSideClick sides =
+    sides
+        |> sidesWithPositions
+        |> List.map
+            (\( side, position ) ->
+                if side /= Left then
+                    viewRightSide onSideClick position
+
+                else
+                    viewEmptySide
+            )
+        |> Element.column []
+
+
+sidesWithPositions : ( Side, Side, Side ) -> List ( Side, Position )
+sidesWithPositions ( side1, side2, side3 ) =
+    [ ( side1, First )
+    , ( side2, Second )
+    , ( side3, Third )
+    ]
+
+
+viewLeftSide : (( Position, Direction ) -> msg) -> Position -> Element msg
+viewLeftSide onSideClick position =
+    Element.el [ Events.onClick (onSideClick ( position, GoRight )) ] <|
+        Element.text ">"
+
+
+viewRightSide : (( Position, Direction ) -> msg) -> Position -> Element msg
+viewRightSide onSideClick position =
+    Element.el [ Events.onClick (onSideClick ( position, GoLeft )) ] <|
+        Element.text "<"
+
+
+viewEmptySide : Element msg
+viewEmptySide =
+    Element.text " "

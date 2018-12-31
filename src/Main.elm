@@ -42,7 +42,8 @@ init =
 
 
 type Msg
-    = AddCoin Grid.ChosenColumn
+    = AddCoin Grid.Position
+    | MoveSide ( Grid.Position, Grid.Direction )
 
 
 update : Msg -> Model -> Model
@@ -50,6 +51,17 @@ update msg model =
     case msg of
         AddCoin chosenColumn ->
             case Grid.addCoin chosenColumn model.grid model.currentPlayer of
+                Nothing ->
+                    model
+
+                Just grid ->
+                    { model
+                        | currentPlayer = Player.switch model.currentPlayer
+                        , grid = grid
+                    }
+
+        MoveSide data ->
+            case Grid.moveSide data model.grid of
                 Nothing ->
                     model
 
@@ -68,7 +80,7 @@ view : Model -> Html Msg
 view model =
     Element.layout [] <|
         Element.column []
-            [ Grid.view AddCoin model.grid
+            [ Grid.view { onColumnClick = AddCoin, onSideClick = MoveSide } model.grid
             , case Grid.winner model.grid of
                 Just Player.X ->
                     Element.text "X has won"
