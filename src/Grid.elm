@@ -104,37 +104,83 @@ moveSide ( position, direction ) (Grid { columns, sides }) =
     let
         ( s1, s2, s3 ) =
             sides
+
+        maybeNewSides : Maybe ( Side, Side, Side )
+        maybeNewSides =
+            case position of
+                First ->
+                    moveSideTo direction s1
+                        |> Maybe.map (\newSide -> ( newSide, s2, s3 ))
+
+                Second ->
+                    moveSideTo direction s2
+                        |> Maybe.map (\newSide -> ( s1, newSide, s3 ))
+
+                Third ->
+                    moveSideTo direction s3
+                        |> Maybe.map (\newSide -> ( s1, s2, newSide ))
     in
-    case position of
-        First ->
-            moveSideTo direction s1
-                |> Maybe.map
-                    (\newSide ->
-                        Grid
-                            { columns = columns
-                            , sides = ( newSide, s2, s3 )
-                            }
-                    )
+    maybeNewSides
+        |> Maybe.map
+            (\newSides ->
+                Grid
+                    { columns = moveCoinsTo ( position, direction ) columns
+                    , sides = newSides
+                    }
+            )
 
-        Second ->
-            moveSideTo direction s2
-                |> Maybe.map
-                    (\newSide ->
-                        Grid
-                            { columns = columns
-                            , sides = ( s1, newSide, s3 )
-                            }
-                    )
 
-        Third ->
-            moveSideTo direction s3
-                |> Maybe.map
-                    (\newSide ->
-                        Grid
-                            { columns = columns
-                            , sides = ( s1, s2, newSide )
-                            }
-                    )
+moveCoinsTo : ( Position, Direction ) -> ( Column, Column, Column ) -> ( Column, Column, Column )
+moveCoinsTo ( position, direction ) columns =
+    let
+        ( ( a, b, c ), ( d, e, f ), ( g, h, i ) ) =
+            createGrid columns
+
+        intermediatePositions =
+            case ( position, direction ) of
+                ( First, GoLeft ) ->
+                    ( [ a, b, f ], [ d, e, i ], [ g, h, Nothing ] )
+
+                ( Second, GoLeft ) ->
+                    ( [ a, e, c ], [ d, h, f ], [ g, Nothing, i ] )
+
+                ( Third, GoLeft ) ->
+                    ( [ d, b, c ], [ g, e, f ], [ Nothing, h, i ] )
+
+                ( First, GoRight ) ->
+                    ( [ a, b, Nothing ], [ d, e, c ], [ g, h, f ] )
+
+                ( Second, GoRight ) ->
+                    ( [ a, Nothing, c ], [ d, b, f ], [ g, e, i ] )
+
+                ( Third, GoRight ) ->
+                    ( [ Nothing, b, c ], [ a, e, f ], [ d, h, i ] )
+    in
+    recreateColumnsFrom intermediatePositions
+
+
+recreateColumnsFrom : ( List (Maybe Player), List (Maybe Player), List (Maybe Player) ) -> ( Column, Column, Column )
+recreateColumnsFrom ( a, b, c ) =
+    ( recreateColumnFrom a
+    , recreateColumnFrom b
+    , recreateColumnFrom c
+    )
+
+
+recreateColumnFrom : List (Maybe Player) -> Column
+recreateColumnFrom values =
+    case List.filterMap identity values of
+        [ a ] ->
+            One a
+
+        [ a, b ] ->
+            Two ( a, b )
+
+        [ a, b, c ] ->
+            Three ( a, b, c )
+
+        _ ->
+            Empty
 
 
 moveSideTo : Direction -> Side -> Maybe Side
@@ -187,7 +233,7 @@ winner (Grid { columns }) =
     in
     combinations
         |> List.find (\( p1, p2, p3 ) -> p1 /= Nothing && p1 == p2 && p2 == p3)
-        |> Maybe.andThen (\( p1, p2, p3 ) -> p1)
+        |> Maybe.andThen (\( p1, _, _ ) -> p1)
 
 
 type alias PlayerColumn =
